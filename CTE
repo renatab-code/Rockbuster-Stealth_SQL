@@ -1,0 +1,53 @@
+#CTE SQL Queries
+
+I began by identifying the key subqueries from the original query—specifically: 
+ - the top 10 countries,
+ - top 10 cities within those countries, 
+ - top 5 customers by total amount paid.
+I turned each subquery into a Common Table Expression (CTE) with a clear alias to improve readability and modularity.
+Finally, I wrote a main SELECT statement to calculate the average amount paid by those top 5 customers using the top_customers CTE as my data source.
+
+WITH all_customers AS (
+    SELECT B.customer_id, E.country
+    FROM customer B
+    JOIN address C ON B.address_id = C.address_id
+    JOIN city D ON C.city_id = D.city_id
+    JOIN country E ON D.country_id = E.country_id),
+top_countries AS (
+    SELECT D.country
+    FROM customer A
+    JOIN address B ON A.address_id = B.address_id
+    JOIN city C ON B.city_id = C.city_id
+    JOIN country D ON C.country_id = D.country_id
+    GROUP BY D.country
+    ORDER BY COUNT(A.customer_id) DESC
+    LIMIT 10),
+top_cities AS (
+    SELECT D.country, C.city
+    FROM customer A
+    JOIN address B ON A.address_id = B.address_id
+    JOIN city C ON B.city_id = C.city_id
+    JOIN country D ON C.country_id = D.country_id
+    WHERE D.country IN (SELECT country FROM top_countries)
+    GROUP BY D.country, C.city
+    ORDER BY COUNT(A.customer_id) DESC
+    LIMIT 10),
+top_5_customers AS (
+    SELECT B.customer_id, E.country
+    FROM payment A
+    JOIN customer B ON A.customer_id = B.customer_id
+    JOIN address C ON B.address_id = C.address_id
+    JOIN city D ON C.city_id = D.city_id
+    JOIN country E ON D.country_id = E.country_id
+    WHERE (E.country, D.city) IN (SELECT country, city FROM top_cities)
+    GROUP BY B.customer_id, E.country
+    ORDER BY SUM(A.amount) DESC
+    LIMIT 5 )
+SELECT 
+    all_customers.country,
+    COUNT(DISTINCT all_customers.customer_id) AS all_customer_count,
+    COUNT(DISTINCT top_5_customers.customer_id) AS top_customer_count
+FROM all_customers
+LEFT JOIN top_5_customers ON all_customers.customer_id = top_5_customers.customer_id
+GROUP BY all_customers.country
+ORDER BY all_customer_count DESC;
