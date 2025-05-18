@@ -1,0 +1,52 @@
+#Create a Subquerie
+
+Subqueries are specially useful when working with multi-step logic:
+ - like filtering,
+ - grouping,
+ - using results from 1 query to imput for another one.
+Subqueries help to improve readability by isolating each part of the logic in its own block.
+
+##Subquery to find out how many of the top 5 customers are based within each country.
+
+SELECT all_customers.country,
+COUNT(DISTINCT all_customers.customer_id) AS all_customer_count,
+COUNT(DISTINCT top_5.customer_id) AS top_customer_count
+FROM (
+SELECT B.customer_id, E.country
+FROM customer B
+JOIN address C ON B.address_id = C.address_id
+JOIN city D ON C.city_id = D.city_id
+JOIN country E ON D.country_id = E.country_id
+) AS all_customers
+LEFT JOIN (
+SELECT B.customer_id, E.country
+FROM payment A
+INNER JOIN customer B ON A.customer_id = B.customer_id
+INNER JOIN address C ON B.address_id = C.address_id
+INNER JOIN city D ON C.city_id = D.city_id
+INNER JOIN country E ON D.country_id = E.country_id
+WHERE (E.country, D.city) IN(
+               SELECT D.country, C.city
+               FROM customer A
+               INNER JOIN address B ON A.address_id = B.address_id
+               INNER JOIN city C ON B.city_id = C.city_id
+               INNER JOIN country D ON C.country_id = D.country_id
+               WHERE D.country IN(
+                            SELECT D.country
+                            FROM customer A
+                            JOIN address B ON A.address_id = B.address_id
+                            JOIN city C ON B.city_id = C.city_id
+                            JOIN country D ON C.country_id = D.country_id
+                           GROUP BY D.country
+                           ORDER BY COUNT(A.customer_id) DESC
+                           LIMIT 10)
+            GROUP BY D.country, C.city
+            ORDER BY COUNT(A.customer_id) DESC
+            LIMIT 10)
+GROUP BY B.customer_id, E.country
+ORDER BY SUM (A.amount) DESC
+LIMIT 5
+) AS top_5
+ON all_customers.customer_id = top_5.customer_id
+GROUP BY all_customers.country
+ORDER BY all_customer_count DESC;
