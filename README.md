@@ -1,4 +1,4 @@
-# Rockbuster Stealth - SQL Data Analysis Project
+# Rockbuster-Stealth-SQL_Data_Analysis_Project
 
 ## Overview
 This project simulates a real-world business case for Rockbuster Stealth LLC, a former global movie rental company aiming to compete in the online streaming market. As a Data Analyst, I was tasked with using PostgreSQL to explore and analyze business data, uncover insights, and support the company's launch strategy for its new digital platform.
